@@ -1,4 +1,5 @@
 [workspace]
+resolver = "3"
 members = [
     "crates/el-core",
     "crates/el-postgres",
@@ -23,3 +24,6 @@ thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bytes = "1"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
