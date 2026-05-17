@@ -524,6 +524,7 @@ version = "0.0.1"
 dependencies = [
  "arrow",
  "arrow-schema",
+ "async-trait",
  "futures",
  "thiserror",
  "tokio",
@@ -536,10 +537,12 @@ version = "0.0.1"
 dependencies = [
  "arrow",
  "arrow-schema",
+ "async-trait",
  "el-core",
  "futures",
  "parquet",
  "tokio",
+ "tokio-stream",
  "tracing",
 ]
 
@@ -549,6 +552,7 @@ version = "0.0.1"
 dependencies = [
  "arrow",
  "arrow-schema",
+ "async-trait",
  "bytes",
  "el-core",
  "futures",

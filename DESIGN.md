@@ -235,7 +235,7 @@ Minimum viable end-to-end path: **Postgres → Parquet (local file)**, then **Po
      crates/
        el-core/              # traits (Source, Destination), type registry, Arrow plumbing, RunReport. No connector deps.
        el-postgres/          # Postgres source. tokio-postgres + binary COPY.
-       el-parquet/           # Local Parquet destination. arrow-rs `parquet` crate, atomic via tmp + rename.
+       el-parquet/           # Local Parquet source + destination. arrow-rs `parquet` crate, atomic write via tmp + rename.
        el-bigquery/          # BigQuery destination. Storage Write API via tonic + googleapis.
        el-py/                # PyO3 wrapper. Re-exports connectors via Cargo features.
      python/
@@ -254,6 +254,7 @@ Minimum viable end-to-end path: **Postgres → Parquet (local file)**, then **Po
 2. `Source` and `Destination` traits. In-memory test implementations. Minimal surface for `full_load` only — incremental shapes will be added later, breaking changes are fine at this stage.
 3. Postgres source via `COPY (SELECT ...) TO STDOUT (FORMAT BINARY)` → Arrow `RecordBatch`. Both `table=` and `query=` compile to this. Docker Postgres+PostGIS fixture used end-to-end.
 4. Parquet destination: write to `<path>.tmp` via `arrow-rs` `parquet::arrow::ArrowWriter` → fsync → atomic rename to `<path>` on success. Single-file output for 0.1 (no partitioning, no directory layout). Compression default = `zstd`. Atomicity: POSIX rename within the same filesystem.
+4a. Parquet source: read local Parquet file via `parquet::arrow::ParquetRecordBatchReader` → emit `RecordBatch` stream. Single-file input for 0.1. Used for dogfooding round-trip tests and as a deterministic Source in tests of other destinations.
 5. BigQuery destination: Storage Write API in `pending` mode against transient staging table → server-side copy job `WRITE_TRUNCATE` from staging into final → `DROP TABLE staging`. No GCS staging.
 6. Schema inference from `information_schema`; user overrides merged in.
 7. Type registry: primitives, `arrow.json`, `arrow.uuid` natively. Ranges auto-expanded (Tier 1). Composites/hstore/unknown → `arrow.opaque` or struct-flatten with WARN (Tier 2). Geo path: `geography(_, 4326)` → BQ `GEOGRAPHY` (Tier 1); `geometry(_, 4326)` without Z/M → BQ `GEOGRAPHY` with WARN about planar→geodesic edge reinterpretation (Tier 2); any other SRID, Z/M present, or reprojection-requiring case = Tier 3, refused. CRS read from PostGIS `geometry_columns`; WKB carried on the wire as `geoarrow.wkb`. Parquet destination preserves Arrow extension metadata in file metadata. BQ destination serializes WKB → WKT for Storage Write. Other Tier 3 cases (lossy decimal/tz coercions) also fail. Workaround = `columns=` / `skip_columns=` on the source.
