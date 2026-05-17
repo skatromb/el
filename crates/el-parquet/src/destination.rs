@@ -69,7 +69,7 @@ async fn run(
     })
 }
 
-/// Currently supports only sequential write
+/// Currently supports only sequential 
 async fn write_all(
     tmp: &Path,
     schema: SchemaRef,
