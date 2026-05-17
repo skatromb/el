@@ -4,7 +4,7 @@
 
 use arrow_schema::SchemaRef;
 use async_trait::async_trait;
-use el_core::{Batches, ElError, Source};
+use el_core::{BatchStream, ElError, Source};
 
 #[derive(Debug, Clone)]
 pub struct PostgresConfig {
@@ -57,11 +57,9 @@ impl Source for PostgresSource {
         ))
     }
 
-    fn batches(self: Box<Self>) -> Batches {
-        Box::pin(futures::stream::once(async {
-            Err(ElError::source(
-                "PostgresSource::batches not yet implemented",
-            ))
-        }))
+    async fn partitions(self: Box<Self>) -> Result<Vec<BatchStream>, ElError> {
+        Err(ElError::source(
+            "PostgresSource::batches not yet implemented",
+        ))
     }
 }

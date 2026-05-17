@@ -90,9 +90,9 @@ No row-level Python callbacks in 0.1. The FFI boundary is crossed once per trans
 ### Architecture
 
 ```
-+----------+     bounded mpsc      +----------+
-|  Source  |  ===================>  |   Destination   |
-|  reader  |   Arrow RecordBatch    |  writer  |
++----------+    Vec<BatchStream>    +----------+
+|  Source  |  ===================>  | Destination |
+|  reader  |  Arrow RecordBatch     |   writer  |
 +----------+                        +----------+
      |                                   ^
      v                                   |
@@ -100,10 +100,40 @@ No row-level Python callbacks in 0.1. The FFI boundary is crossed once per trans
 ```
 
 - Single Rust process. `el` Python module is a PyO3 extension.
-- `Source` trait yields `Stream<Item = RecordBatch>` (async).
-- `Destination` trait consumes the same stream.
-- Backpressure via bounded `tokio::mpsc` between reader and writer tasks.
-- Schema resolution happens once, before the stream starts.
+- `Source` trait: `partitions(self) -> Result<Vec<BatchStream>>`. Each `BatchStream` = one partition's async `Stream<Item = RecordBatch>`. Non-partitionable sources return a one-element `Vec`.
+- `Destination` trait consumes `Vec<BatchStream>`. Single-file destinations serialize partitions; partition-aware destinations (e.g., partitioned Parquet directory, BQ multi-stream) run them concurrently.
+- Async end-to-end: native async I/O via `AsyncArrowWriter` and `ParquetRecordBatchStream`. No `spawn_blocking`, no internal mpsc channels.
+- Backpressure happens naturally — `.next().await` on the source stream blocks until the writer is ready.
+- Schema resolution happens once, before partitions are produced.
+
+### Memory model
+
+Goal: keep per-worker memory consumption predictable, under a configured cap (default 256 MiB), without surprising OOMs.
+
+0.1 (serial, single partition):
+
+- One batch in flight at any time. `source.next().await` yields one `RecordBatch`; `writer.write(&batch).await` consumes it; loop.
+- No buffering between source and destination.
+- Async readers don't prefetch; async writers buffer one row group internally (configure `WriterProperties::set_max_row_group_size` to keep this bounded — default is large).
+- Peak per-pipeline memory ≈ `1 × batch_bytes + writer_row_group_buffer`.
+
+Parallel partitions (deferred to partition feature):
+
+- Per partition: same 1-batch-in-flight + writer buffer.
+- Concurrency cap K via `stream::iter(partitions).buffered(K)`.
+- Worst-case memory ≈ `K × (batch_bytes + writer_row_group_buffer)`.
+- Default K = `min(parallelism_config, available_parallelism())`.
+- Tune row group size down when K > 1.
+
+Byte-aware budget (deferred):
+
+- Currently no semaphore. Memory bounded by batch shape × K.
+- If real workloads show skew (huge variable-width columns) blowing out the bound, introduce a byte-aware semaphore in `el-core` and have partitions acquire permits sized by `RecordBatch::get_array_memory_size()`.
+
+Concurrent transfers in one process (deferred to 0.2):
+
+- Currently each transfer assumes it owns the worker's memory budget. Multiple `Transfer.run()` calls in one process compound memory.
+- For now, run independent transfers in separate processes if isolation matters.
 
 ### Runtime contract
 
@@ -115,8 +145,8 @@ No row-level Python callbacks in 0.1. The FFI boundary is crossed once per trans
 - **Credentials.** All GCP auth delegates to `gcp_auth`: Application Default Credentials, `GOOGLE_APPLICATION_CREDENTIALS` service-account JSON, gcloud user creds, workload identity. Postgres uses standard DSN-embedded creds or libpq env vars.
 - **Run report.** `RunReport` returned by `.run()` is the canonical post-run record. Logs are for trace; `RunReport` is for programs.
 - **Logging.** Rust uses `tracing`. A bridge layer emits events into Python's `logging` so users get one config story (`logging.getLogger("el").setLevel(...)`).
-- **Batching.** Default target batch size: 16 MiB. Source yields batches sized to that target (row count varies by row width). Tunable per source.
-- **Concurrency.** Reader and writer run as separate tasks on a tokio runtime owned by the Rust side. PyO3 releases the GIL on every entry. Supported interpreter: Python 3.14 free-threaded build (`cp314t`) — see Tech stack.
+- **Batching.** Reader batch size is its own default (Parquet ≈ 1024 rows). No bytes target enforced; in-flight memory bounded by 1 batch per partition (see Memory model).
+- **Concurrency.** Async end-to-end on the tokio multi-thread runtime owned by the Rust side. Partitions within one transfer run concurrently (deferred); separate transfers run in separate processes (0.1). PyO3 releases the GIL on every entry. Supported interpreter: Python 3.14 free-threaded build (`cp314t`) — see Tech stack.
 
 ### Type mapping
 
@@ -253,8 +283,8 @@ Minimum viable end-to-end path: **Postgres → Parquet (local file)**, then **Po
    Per-connector crates keep `el-core` free of cloud/database deps. `el-py` opts in via Cargo features. Built via maturin against `cp314t`.
 2. `Source` and `Destination` traits. In-memory test implementations. Minimal surface for `full_load` only — incremental shapes will be added later, breaking changes are fine at this stage.
 3. Postgres source via `COPY (SELECT ...) TO STDOUT (FORMAT BINARY)` → Arrow `RecordBatch`. Both `table=` and `query=` compile to this. Docker Postgres+PostGIS fixture used end-to-end.
-4. Parquet destination: write to `<path>.tmp` via `arrow-rs` `parquet::arrow::ArrowWriter` → fsync → atomic rename to `<path>` on success. Single-file output for 0.1 (no partitioning, no directory layout). Compression default = `zstd`. Atomicity: POSIX rename within the same filesystem.
-4a. Parquet source: read local Parquet file via `parquet::arrow::ParquetRecordBatchReader` → emit `RecordBatch` stream. Single-file input for 0.1. Used for dogfooding round-trip tests and as a deterministic Source in tests of other destinations.
+4. Parquet destination: write to `<path>.tmp` via `parquet::arrow::AsyncArrowWriter` over `tokio::fs::File` → close → atomic rename to `<path>` on success. Single-file output for 0.1 (no partitioning, no directory layout). Compression default = `zstd`. Atomicity: POSIX rename within the same filesystem. Partitioned Parquet (directory of `part-NNNN.parquet`) is the parallelism vehicle when partition feature lands.
+4a. Parquet source: read local Parquet file via `parquet::arrow::async_reader::ParquetRecordBatchStreamBuilder` → emit `Vec<BatchStream>` (single partition in 0.1). Used for dogfooding round-trip tests and as a deterministic Source in tests of other destinations.
 5. BigQuery destination: Storage Write API in `pending` mode against transient staging table → server-side copy job `WRITE_TRUNCATE` from staging into final → `DROP TABLE staging`. No GCS staging.
 6. Schema inference from `information_schema`; user overrides merged in.
 7. Type registry: primitives, `arrow.json`, `arrow.uuid` natively. Ranges auto-expanded (Tier 1). Composites/hstore/unknown → `arrow.opaque` or struct-flatten with WARN (Tier 2). Geo path: `geography(_, 4326)` → BQ `GEOGRAPHY` (Tier 1); `geometry(_, 4326)` without Z/M → BQ `GEOGRAPHY` with WARN about planar→geodesic edge reinterpretation (Tier 2); any other SRID, Z/M present, or reprojection-requiring case = Tier 3, refused. CRS read from PostGIS `geometry_columns`; WKB carried on the wire as `geoarrow.wkb`. Parquet destination preserves Arrow extension metadata in file metadata. BQ destination serializes WKB → WKT for Storage Write. Other Tier 3 cases (lossy decimal/tz coercions) also fail. Workaround = `columns=` / `skip_columns=` on the source.
