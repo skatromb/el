@@ -1,5 +1,9 @@
 [package]
 name = "transferred-core"
+description = "Connector-agnostic traits and types for the transferred data transfer engine."
+readme = "../../README.md"
+keywords = ["transferred", "etl", "extract-load", "arrow", "data-transfer"]
+categories = ["database", "asynchronous"]
 version.workspace = true
 edition.workspace = true
 license.workspace = true

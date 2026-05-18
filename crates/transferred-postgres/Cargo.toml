@@ -1,5 +1,9 @@
 [package]
 name = "transferred-postgres"
+description = "Postgres source for the transferred data transfer engine."
+readme = "../../README.md"
+keywords = ["transferred", "postgres", "arrow", "etl", "data-transfer"]
+categories = ["database"]
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +13,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-transferred-core = { path = "../transferred-core" }
+transferred-core = { workspace = true }
 arrow = { workspace = true }
 arrow-schema = { workspace = true }
 async-trait = { workspace = true }

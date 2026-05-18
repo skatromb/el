@@ -1,5 +1,9 @@
 [package]
 name = "transferred-parquet"
+description = "Parquet source and destination for the transferred data transfer engine."
+readme = "../../README.md"
+keywords = ["transferred", "parquet", "arrow", "etl", "data-transfer"]
+categories = ["database", "filesystem"]
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +13,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-transferred-core = { path = "../transferred-core" }
+transferred-core = { workspace = true }
 arrow = { workspace = true }
 arrow-schema = { workspace = true }
 async-trait = { workspace = true }
@@ -20,7 +24,7 @@ futures = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
-transferred-core = { path = "../transferred-core", features = ["dev"] }
+transferred-core = { workspace = true, features = ["dev"] }
 tempfile = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 futures = { workspace = true }
