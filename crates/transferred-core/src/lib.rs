@@ -1,4 +1,4 @@
-//! `el-core` — connector-agnostic types: traits, error type, run report.
+//! `transferred-core` — connector-agnostic types: traits, error type, run report.
 
 mod error;
 mod report;

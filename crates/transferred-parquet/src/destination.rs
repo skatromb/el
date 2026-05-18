@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use arrow_schema::SchemaRef;
 use async_trait::async_trait;
-use el_core::{BatchStream, Destination, ElError, RunReport};
+use transferred_core::{BatchStream, Destination, ElError, RunReport};
 use futures::StreamExt;
 use parquet::arrow::AsyncArrowWriter;
 use parquet::file::properties::WriterProperties;

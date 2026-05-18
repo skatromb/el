@@ -519,51 +519,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "el-core"
-version = "0.0.1"
-dependencies = [
- "arrow",
- "arrow-schema",
- "async-trait",
- "futures",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "el-parquet"
-version = "0.0.1"
-dependencies = [
- "arrow",
- "arrow-schema",
- "async-trait",
- "el-core",
- "futures",
- "parquet",
- "tempfile",
- "tokio",
- "tokio-stream",
- "tracing",
-]
-
-[[package]]
-name = "el-postgres"
-version = "0.0.1"
-dependencies = [
- "arrow",
- "arrow-schema",
- "async-trait",
- "bytes",
- "el-core",
- "futures",
- "tokio",
- "tokio-postgres",
- "tokio-stream",
- "tracing",
-]
-
-[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1678,6 +1633,51 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "transferred-core"
+version = "0.0.1"
+dependencies = [
+ "arrow",
+ "arrow-schema",
+ "async-trait",
+ "futures",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "transferred-parquet"
+version = "0.0.1"
+dependencies = [
+ "arrow",
+ "arrow-schema",
+ "async-trait",
+ "futures",
+ "parquet",
+ "tempfile",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "transferred-core",
+]
+
+[[package]]
+name = "transferred-postgres"
+version = "0.0.1"
+dependencies = [
+ "arrow",
+ "arrow-schema",
+ "async-trait",
+ "bytes",
+ "futures",
+ "tokio",
+ "tokio-postgres",
+ "tokio-stream",
+ "tracing",
+ "transferred-core",
 ]
 
 [[package]]

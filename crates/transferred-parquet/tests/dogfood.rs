@@ -18,9 +18,9 @@ use arrow::array::{
 use arrow::buffer::OffsetBuffer;
 use arrow::record_batch::RecordBatch;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
-use el_core::Transfer;
-use el_core::test_utils::{TestDestination, TestSource};
-use el_parquet::{Compression, ParquetDestination, ParquetSource};
+use transferred_core::Transfer;
+use transferred_core::test_utils::{TestDestination, TestSource};
+use transferred_parquet::{Compression, ParquetDestination, ParquetSource};
 use tempfile::tempdir;
 
 fn schema() -> Arc<Schema> {

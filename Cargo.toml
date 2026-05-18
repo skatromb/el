@@ -1,16 +1,16 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/el-core",
-    "crates/el-postgres",
-    "crates/el-parquet",
+    "crates/transferred-core",
+    "crates/transferred-postgres",
+    "crates/transferred-parquet",
 ]
 
 [workspace.package]
 version = "0.0.1"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/skatromb/el"
+repository = "https://github.com/skatromb/transferred"
 
 [workspace.dependencies]
 arrow = { version = "58", features = ["prettyprint"] }

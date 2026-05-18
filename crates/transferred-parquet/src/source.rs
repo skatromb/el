@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use arrow_schema::SchemaRef;
 use async_trait::async_trait;
-use el_core::{BatchStream, ElError, Source};
+use transferred_core::{BatchStream, ElError, Source};
 use futures::StreamExt;
 use parquet::arrow::async_reader::ParquetRecordBatchStreamBuilder;
 use tokio::fs::File;

@@ -1,7 +1,7 @@
 //! Postgres `Type` → Arrow `DataType` mapping (v0 primitives).
 
 use arrow_schema::DataType;
-use el_core::ElError;
+use transferred_core::ElError;
 use tokio_postgres::types::Type;
 
 pub fn pg_to_arrow(pg: &Type) -> Result<DataType, ElError> {

@@ -4,7 +4,7 @@
 
 use arrow_schema::SchemaRef;
 use async_trait::async_trait;
-use el_core::{BatchStream, ElError, Source};
+use transferred_core::{BatchStream, ElError, Source};
 
 #[derive(Debug, Clone)]
 pub struct PostgresConfig {

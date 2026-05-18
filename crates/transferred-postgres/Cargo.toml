@@ -1,5 +1,5 @@
 [package]
-name = "el-parquet"
+name = "transferred-postgres"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,18 +9,13 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-el-core = { path = "../el-core" }
+transferred-core = { path = "../transferred-core" }
 arrow = { workspace = true }
 arrow-schema = { workspace = true }
 async-trait = { workspace = true }
-parquet = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
+tokio-postgres = { workspace = true }
 futures = { workspace = true }
 tracing = { workspace = true }
-
-[dev-dependencies]
-el-core = { path = "../el-core", features = ["dev"] }
-tempfile = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-futures = { workspace = true }
+bytes = { workspace = true }
